@@ -14,7 +14,13 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.Toast;
+import android.os.Bundle;
+import android.view.Menu;
+import android.widget.ArrayAdapter;import android.widget.ListView;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
     ArrayList<BluetoothDevice> devices = new ArrayList<>();
+    ArrayList<String> deviceName = new ArrayList<>();
 
     BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
     BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
@@ -79,6 +86,17 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        ListView simpleList = (ListView)findViewById(R.id.devices);
+        ArrayAdapter adapter = new ArrayAdapter<String>(
+                this, R.layout.activity_listview, R.id.textView, deviceName);
+        simpleList.setAdapter(adapter);
+
+        /*
+        If device chosen, read data
+        Intent pickContactIntent = new Intent();
+        pickContactIntent.setType();
+        startActivityForResult();
+        */
     }
 
     @Override
@@ -106,17 +124,25 @@ public class MainActivity extends AppCompatActivity {
         public void onScanResult(int callbackType, ScanResult result) {
             BluetoothDevice device = result.getDevice();
             //Will need to filter based on UUID (maybe also name and RSSI value)
-            devices.add(device);
+            //TODO: Should not have empty catch - find better way to implement
+            //TODO: Shouldn't be getting dupes because of ArrayList but we are - fio
+            try {
+                if (!device.getName().equals("null")) {
+                    devices.add(device);
+                }
+            } catch (Exception e){}
 
-            //list devices and allow user to select one
+            //TODO: Figure out why size not always set at 10
+            //TODO: Change this in case 5 devices can't be found
+            if (devices.size() == 5) {
+                scanner.stopScan(scanCallback);
 
-            /*
-            If device chosen, read data and stop scan
-            scanner.stopscan(scanCallBack);
-            Intent pickContactIntent = new Intent();
-            pickContactIntent.setType();
-            startActivityForResult();
-            */
+                //list devices and allow user to select one
+                for (int i = 0; i < devices.size(); i++){
+                    deviceName.add(devices.get(i).getName());
+                }
+                onResume();
+            }
         }
 
         @Override
@@ -128,5 +154,6 @@ public class MainActivity extends AppCompatActivity {
         public void onScanFailed(int errorCode) {
             // Ignore for now
         }
+
     };
 }
