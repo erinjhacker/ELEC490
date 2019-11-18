@@ -1,6 +1,5 @@
 package com.example.elec490;
 
-import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -8,21 +7,19 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
-import android.os.Bundle;
-import android.view.Menu;
-import android.widget.ArrayAdapter;import android.widget.ListView;
 
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 
@@ -42,8 +39,10 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
-    ArrayList<BluetoothDevice> devices = new ArrayList<>();
-    ArrayList<String> deviceName = new ArrayList<>();
+    HashSet<BluetoothDevice> devices = new HashSet<>();
+    ArrayList<String> deviceNames = new ArrayList<>();
+
+    BluetoothDevice chosenDevice;
 
     BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
     BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
@@ -86,17 +85,39 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        ListView simpleList = (ListView)findViewById(R.id.devices);
-        ArrayAdapter adapter = new ArrayAdapter<String>(
-                this, R.layout.activity_listview, R.id.textView, deviceName);
-        simpleList.setAdapter(adapter);
 
-        /*
-        If device chosen, read data
-        Intent pickContactIntent = new Intent();
-        pickContactIntent.setType();
-        startActivityForResult();
-        */
+        final ListView simpleList = (ListView)findViewById(R.id.devices);
+        ArrayAdapter adapter = new ArrayAdapter<String>(
+                this, R.layout.activity_listview, R.id.textView, deviceNames);
+        simpleList.setAdapter(adapter);
+        simpleList.setClickable(true);
+        simpleList.setTextFilterEnabled(true);
+        simpleList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            public void onItemClick(AdapterView<?> arg0, View view, int position, long id) {
+            String deviceName=(String) simpleList.getItemAtPosition(position);
+
+            for (BluetoothDevice device : devices) {
+                if (device.getName().equals(deviceName))
+                {
+                    chosenDevice = device;
+                }
+            }
+
+            goToReadDevice(chosenDevice);
+            }
+
+        });
+    }
+
+    protected void goToReadDevice(BluetoothDevice device) {
+        Intent intent = new Intent(this, ReadDevice.class);
+        //Not sure which extras are needed
+        intent.putExtra("deviceName", device.getName());
+        intent.putExtra("deviceAddr", device.getAddress());
+        intent.putExtra("deviceType", device.getType());
+        intent.putExtra("deviceUuids", device.getUuids());
+        startActivity(intent);
     }
 
     @Override
@@ -126,21 +147,21 @@ public class MainActivity extends AppCompatActivity {
             //Will need to filter based on UUID (maybe also name and RSSI value)
             //TODO: Should not have empty catch - find better way to implement
             //TODO: Shouldn't be getting dupes because of ArrayList but we are - fio
+            //TODO: Add loading bar - not urgent but would look nice
             try {
                 if (!device.getName().equals("null")) {
                     devices.add(device);
                 }
             } catch (Exception e){}
 
-            //TODO: Figure out why size not always set at 10
-            //TODO: Change this in case 5 devices can't be found
+            //TODO: Figure out why size not always set at 10 - not actually stopping or is at least restarting the scan
+            //TODO: Change this in case 5 devices can't be found - don't want to get NPE
             if (devices.size() == 5) {
                 scanner.stopScan(scanCallback);
-
-                //list devices and allow user to select one
-                for (int i = 0; i < devices.size(); i++){
-                    deviceName.add(devices.get(i).getName());
+                for (BluetoothDevice dev : devices) {
+                    deviceNames.add(dev.getName());
                 }
+                //TODO: Create new method - don't use onResume - likely why there are dupes
                 onResume();
             }
         }
