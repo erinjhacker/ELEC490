@@ -1,443 +1,180 @@
 package com.example.elec490;
 
-import android.app.Activity;
-import android.app.TimePickerDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattService;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanFilter;
-import android.bluetooth.le.ScanResult;
-import android.bluetooth.le.ScanSettings;
 import android.bluetooth.le.BluetoothLeScanner;
-import android.content.Context;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.ParcelUuid;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.util.SparseArray;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
-import android.widget.TimePicker;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.Toast;
 
-import java.text.DateFormat;
+
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
-/** Modified from:
- * Dave Smith
- * Date: 11/13/14
- * ClientActivity
- * https://github.com/devunwired/accessory-samples/blob/master/BluetoothGattPeripheral/src/main/java/com/example/android/bluetoothgattperipheral/ClientActivity.java
- *
- * And
- *
- * https://www.truiton.com/2015/04/android-bluetooth-low-energy-ble-example/
- * /
 
-/** Notes:
- * User is not prompted to enable location services, must do manually in settings upon install
+/** Modified from:
+ * https://medium.com/@martijn.van.welie/making-android-ble-work-part-1-a736dcd53b02
+ */
+
+/** This is the main activity
+ *  The program will begin by searching for devices, since the device will be unpaired after
+ *  previous session
+ *
+ *  When a device is selected, the main activity will end and the next activity,
+ *  ReadDevice, will begin
  */
 
 public class MainActivity extends AppCompatActivity {
-    private static final String TAG = "ClientActivity";
+
+    private static final String TAG = "MainActivity";
+
+    HashSet<BluetoothDevice> devices = new HashSet<>();
+    ArrayList<String> deviceNames = new ArrayList<>();
+
+    BluetoothDevice chosenDevice;
+
+    BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+    BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
 
     private int REQUEST_ENABLE_BT = 1;
 
-    private BluetoothManager mBluetoothManager;
-    private BluetoothAdapter mBluetoothAdapter;
-
-    private SparseArray<BluetoothDevice> mDevices;
-
-    private BluetoothGatt mConnectedGatt;
-
-    private Handler mHandler = new Handler();
-
-    private static final long SCAN_PERIOD = 10000;
-    private BluetoothLeScanner mLEScanner;
-    private ScanSettings settings;
-    private List<ScanFilter> filters;
-    private BluetoothGatt mGatt;
-
-    /* Client UI elements */
-    private TextView mLatestValue;
-    private TextView mCurrentOffset;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_client);
-
-        mLatestValue = (TextView) findViewById(R.id.latest_value);
-        mCurrentOffset = (TextView) findViewById(R.id.offset_date);
-        updateDateText(0);
-
-        /*
-         * Bluetooth in Android 4.3+ is accessed via the BluetoothManager, rather than
-         * the old static BluetoothAdapter.getInstance()
-         */
-
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Toast.makeText(this, "BLE Not Supported",
-                    Toast.LENGTH_SHORT).show();
-            finish();
-        }
-
-        mBluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
-        mBluetoothAdapter = mBluetoothManager.getAdapter();
-
-        mDevices = new SparseArray<BluetoothDevice>();
+        setContentView(R.layout.activity_main);
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        /*
-         * We need to enforce that Bluetooth is first enabled, and take the
-         * user to settings to enable it if they have not done so.
-         */
-        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
-            //Bluetooth is disabled
+    protected void onStart() {
+        super.onStart();
+
+        //If bluetooth off, ask to turn on
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (!bluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-            finish();
-        } else {
-            if (Build.VERSION.SDK_INT >= 21) {
-                mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
-                settings = new ScanSettings.Builder()
-                        .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-                        .build();
-                filters = new ArrayList<ScanFilter>();
-            }
-            scanLeDevice(true);
         }
 
-        /*
-         * Check for Bluetooth LE Support.  In production, our manifest entry will keep this
-         * from installing on these devices, but this will allow test devices or other
-         * sideloads to report whether or not the feature exists.
-         */
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, "No LE Support.", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
+
+        //Scan for device
+        if (scanner != null) {
+            scanner.startScan(scanCallback);
+            Log.d(TAG, "scan started");
+        }  else {
+            Log.e(TAG, "could not get scanner object");
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        final ListView simpleList = (ListView)findViewById(R.id.devices);
+        ArrayAdapter adapter = new ArrayAdapter<String>(
+                this, R.layout.activity_listview, R.id.textView, deviceNames);
+        simpleList.setAdapter(adapter);
+        simpleList.setClickable(true);
+        simpleList.setTextFilterEnabled(true);
+        simpleList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            public void onItemClick(AdapterView<?> arg0, View view, int position, long id) {
+            String deviceName=(String) simpleList.getItemAtPosition(position);
+
+            for (BluetoothDevice device : devices) {
+                if (device.getName().equals(deviceName))
+                {
+                    chosenDevice = device;
+                }
+            }
+
+            goToReadDevice(chosenDevice);
+            }
+
+        });
+    }
+
+    protected void goToReadDevice(BluetoothDevice device) {
+        Intent intent = new Intent(this, ReadDevice.class);
+        //Not sure which extras are needed
+        intent.putExtra("deviceName", device.getName());
+        intent.putExtra("deviceAddr", device.getAddress());
+        intent.putExtra("deviceType", device.getType());
+        intent.putExtra("deviceUuids", device.getUuids());
+        startActivity(intent);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        //Stop any active scans
-        stopScan();
-        //Disconnect from any active connection
-        if (mConnectedGatt != null) {
-            mConnectedGatt.disconnect();
-            mConnectedGatt = null;
-        }
-    }
-
-    private void scanLeDevice(final boolean enable) {
-        if (enable) {
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (Build.VERSION.SDK_INT < 21) {
-                        mBluetoothAdapter.stopLeScan(mLeScanCallback);
-                    } else {
-                        mLEScanner.stopScan(mScanCallback);
-                    }
-                }
-            }, SCAN_PERIOD);
-            if (Build.VERSION.SDK_INT < 21) {
-                mBluetoothAdapter.startLeScan(mLeScanCallback);
-            } else {
-                mLEScanner.startScan(filters, settings, mScanCallback);
-            }
-        } else {
-            if (Build.VERSION.SDK_INT < 21) {
-                mBluetoothAdapter.stopLeScan(mLeScanCallback);
-            } else {
-                mLEScanner.stopScan(mScanCallback);
-            }
-        }
-    }
-
-    private BluetoothAdapter.LeScanCallback mLeScanCallback =
-        new BluetoothAdapter.LeScanCallback() {
-            @Override
-            public void onLeScan(final BluetoothDevice device, int rssi,
-                                 byte[] scanRecord) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.i("onLeScan", device.toString());
-                        connectToDevice(device);
-                    }
-                });
-            }
-        };
-
-    public void connectToDevice(BluetoothDevice device) {
-        if (mGatt == null) {
-            mGatt = device.connectGatt(this, false, gattCallback);
-            scanLeDevice(false);// will stop after first device detection
-        }
-    }
-
-    private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
-        @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            Log.i("onConnectionStateChange", "Status: " + status);
-            switch (newState) {
-                case BluetoothProfile.STATE_CONNECTED:
-                    Log.i("gattCallback", "STATE_CONNECTED");
-                    gatt.discoverServices();
-                    break;
-                case BluetoothProfile.STATE_DISCONNECTED:
-                    Log.e("gattCallback", "STATE_DISCONNECTED");
-                    break;
-                default:
-                    Log.e("gattCallback", "STATE_OTHER");
-            }
-        }
-    };
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.scan, menu);
-        //Add any device elements we've discovered to the overflow menu
-        for (int i=0; i < mDevices.size(); i++) {
-            BluetoothDevice device = mDevices.valueAt(i);
-            menu.add(0, mDevices.keyAt(i), 0, device.getName());
-        }
-
-        return true;
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_scan:
-                mDevices.clear();
-                startScan();
-                return true;
-            default:
-                //Obtain the discovered device to connect with
-                BluetoothDevice device = mDevices.get(item.getItemId());
-                Log.i(TAG, "Connecting to " + device.getName());
-                /*
-                 * Make a connection with the device using the special LE-specific
-                 * connectGatt() method, passing in a callback for GATT events
-                 */
-                mConnectedGatt = device.connectGatt(this, false, mGattCallback);
-                return super.onOptionsItemSelected(item);
-        }
+    protected void onRestart() {
+        super.onRestart();
     }
 
-    /*
-     * Select a new time to set as the base offset
-     * on the GATT Server. Then write to the characteristic.
-     */
-    public void onUpdateClick(View v) {
-        if (mConnectedGatt != null) {
-            final Calendar now = Calendar.getInstance();
-            TimePickerDialog dialog = new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
-                @Override
-                public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-                    now.set(Calendar.HOUR_OF_DAY, hourOfDay);
-                    now.set(Calendar.MINUTE, minute);
-                    now.set(Calendar.SECOND, 0);
-                    now.set(Calendar.MILLISECOND, 0);
-
-                    BluetoothGattCharacteristic characteristic = mConnectedGatt
-                            .getService(DeviceProfile.SERVICE_UUID)
-                            .getCharacteristic(DeviceProfile.CHARACTERISTIC_OFFSET_UUID);
-                    byte[] value = DeviceProfile.bytesFromInt((int)(now.getTimeInMillis()/1000));
-                    Log.d(TAG, "Writing value of size "+value.length);
-                    characteristic.setValue(value);
-
-                    mConnectedGatt.writeCharacteristic(characteristic);
-                }
-            }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), false);
-            dialog.show();
-        }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 
-    /*
-     * Retrieve the current value of the time offset
-     */
-    public void onGetOffsetClick(View v) {
-        if (mConnectedGatt != null) {
-            BluetoothGattCharacteristic characteristic = mConnectedGatt
-                    .getService(DeviceProfile.SERVICE_UUID)
-                    .getCharacteristic(DeviceProfile.CHARACTERISTIC_OFFSET_UUID);
-
-            mConnectedGatt.readCharacteristic(characteristic);
-            mCurrentOffset.setText("---");
-        }
-    }
-
-    private void updateDateText(long offset) {
-        Date date = new Date(offset);
-        String dateString = DateFormat.getDateTimeInstance().format(date);
-        mCurrentOffset.setText(dateString);
-    }
-
-    /*
-     * Begin a scan for new servers that advertise our
-     * matching service.
-     */
-    private void startScan() {
-        //Scan for devices advertising our custom service
-        ScanFilter scanFilter = new ScanFilter.Builder()
-                .setServiceUuid(new ParcelUuid(DeviceProfile.SERVICE_UUID))
-                .build();
-        ArrayList<ScanFilter> filters = new ArrayList<ScanFilter>();
-        filters.add(scanFilter);
-
-        ScanSettings settings = new ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
-                .build();
-        mBluetoothAdapter.getBluetoothLeScanner().startScan(filters, settings, mScanCallback);
-    }
-
-    /*
-     * Terminate any active scans
-     */
-    private void stopScan() {
-        mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
-    }
-
-    /*
-     * Callback handles results from new devices that appear
-     * during a scan. Batch results appear when scan delay
-     * filters are enabled.
-     */
-    private ScanCallback mScanCallback = new ScanCallback() {
+    private final ScanCallback scanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
-            Log.d(TAG, "onScanResult");
+            BluetoothDevice device = result.getDevice();
+            //Will need to filter based on UUID (maybe also name and RSSI value)
+            //TODO: Should not have empty catch - find better way to implement
+            //TODO: Shouldn't be getting dupes because of ArrayList but we are - fio
+            //TODO: Add loading bar - not urgent but would look nice
+            try {
+                if (!device.getName().equals("null")) {
+                    devices.add(device);
+                }
+            } catch (Exception e){}
 
-            processResult(result);
+            //TODO: Figure out why size not always set at 10 - not actually stopping or is at least restarting the scan
+            //TODO: Change this in case 5 devices can't be found - don't want to get NPE
+            if (devices.size() == 5) {
+                scanner.stopScan(scanCallback);
+                for (BluetoothDevice dev : devices) {
+                    deviceNames.add(dev.getName());
+                }
+                //TODO: Create new method - don't use onResume - likely why there are dupes
+                onResume();
+            }
         }
 
         @Override
         public void onBatchScanResults(List<ScanResult> results) {
-            Log.d(TAG, "onBatchScanResults: "+results.size()+" results");
-
-            for (ScanResult result : results) {
-                processResult(result);
-            }
+            // Ignore for now
         }
 
         @Override
         public void onScanFailed(int errorCode) {
-            stopScan();
-            Log.w(TAG, "LE Scan Failed: "+ errorCode);
-            if (errorCode == 1)
-                startScan();
+            // Ignore for now
         }
 
-        private void processResult(ScanResult result) {
-            BluetoothDevice device = result.getDevice();
-            Log.i(TAG, "New LE Device: " + device.getName() + " @ " + result.getRssi());
-            //Add it to the collection
-            mDevices.put(device.hashCode(), device);
-            //Update the overflow menu
-            invalidateOptionsMenu();
-
-            stopScan();
-        }
-    };
-
-    /*
-     * Callback handles GATT client events, such as results from
-     * reading or writing a characteristic value on the server.
-     */
-    private BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
-        @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-            super.onConnectionStateChange(gatt, status, newState);
-            Log.d(TAG, "onConnectionStateChange "
-                    +DeviceProfile.getStatusDescription(status)+" "
-                    +DeviceProfile.getStateDescription(newState));
-
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                gatt.discoverServices();
-            }
-        }
-
-        @Override
-        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-            super.onServicesDiscovered(gatt, status);
-            Log.d(TAG, "onServicesDiscovered:");
-
-            for (BluetoothGattService service : gatt.getServices()) {
-                Log.d(TAG, "Service: "+service.getUuid());
-
-                if (DeviceProfile.SERVICE_UUID.equals(service.getUuid())) {
-                    //Read the current characteristic's value
-                    gatt.readCharacteristic(service.getCharacteristic(DeviceProfile.CHARACTERISTIC_ELAPSED_UUID));
-                }
-            }
-        }
-
-        @Override
-        public void onCharacteristicRead(BluetoothGatt gatt,
-                                         BluetoothGattCharacteristic characteristic,
-                                         int status) {
-            super.onCharacteristicRead(gatt, characteristic, status);
-            final int charValue = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
-
-            if (DeviceProfile.CHARACTERISTIC_ELAPSED_UUID.equals(characteristic.getUuid())) {
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        mLatestValue.setText(String.valueOf(charValue));
-                    }
-                });
-
-                //Register for further updates as notifications
-                gatt.setCharacteristicNotification(characteristic, true);
-            }
-
-            if (DeviceProfile.CHARACTERISTIC_OFFSET_UUID.equals(characteristic.getUuid())) {
-                Log.d(TAG, "Current time offset: "+charValue);
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        updateDateText((long)charValue * 1000);
-                    }
-                });
-            }
-        }
-
-        @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt,
-                                            BluetoothGattCharacteristic characteristic) {
-            super.onCharacteristicChanged(gatt, characteristic);
-            Log.i(TAG, "Notification of time characteristic changed on server.");
-            final int charValue = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT32, 0);
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    mLatestValue.setText(String.valueOf(charValue));
-                }
-            });
-        }
     };
 }
