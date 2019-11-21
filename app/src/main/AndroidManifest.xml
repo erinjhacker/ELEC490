@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 
-    package="com.example.elec490">
+    package="com.example.elec490"
+    android:versionCode="1"
+    android:versionName = "1.0" >
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
@@ -23,10 +25,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service
-            android:name=".BLEService"
-            android:enabled="true"/>
-        <activity android:name=".PeripheralControlActivity"></activity>
+        <activity
+            android:label="Read Device"
+            android:name=".ReadDevice" >
+        </activity>
     </application>
 
 </manifest>
