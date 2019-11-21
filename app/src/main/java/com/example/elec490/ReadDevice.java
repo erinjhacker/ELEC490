@@ -58,7 +58,8 @@ public class ReadDevice extends AppCompatActivity {
         };
         String deviceAddr = getIntent().getExtras().getString("deviceAddr");
         BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddr);
-        BluetoothGatt gatt = device.connectGatt(this, false, gattCallBack, TRANSPORT_LE);        try {
+        BluetoothGatt gatt = device.connectGatt(this, false, gattCallBack, TRANSPORT_LE);
+        try {
             waitUntilConnected();
         } catch (InterruptedException e) {
             Log.d(TAG, "Failure to connect to BLE device");
