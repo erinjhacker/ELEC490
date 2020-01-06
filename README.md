@@ -8,7 +8,6 @@ Tom Sung, tomssung@gmail.com
 
 In collaboration with:
 Professor Shideh Kabiri Ameri, shideh.ameri@queensu.ca
-Shamannita Nundy, s.nundy@queensu.ca
 
 This project has been designed by students at Queen's University, Kingston as part of a year-and-a-half long capstone project. 
 The goal of this project is to, using a capcitive sensor designed by Nundy and Professor Ameri, build a PCB with BLE capabilities which will communicate with an Android BLE app and display the sensor readings.
