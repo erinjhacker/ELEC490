@@ -1,5 +1,6 @@
 package com.example.elec490;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -9,6 +10,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -20,8 +23,6 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
-
 
 /** Modified from:
  * https://medium.com/@martijn.van.welie/making-android-ble-work-part-1-a736dcd53b02
@@ -44,21 +45,26 @@ public class MainActivity extends AppCompatActivity {
 
     BluetoothDevice chosenDevice;
 
-    BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-    BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
-
     private int REQUEST_ENABLE_BT = 1;
 
+    BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+    BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-    }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
+        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED){
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)){
+                Toast.makeText(this, "The permission to get BLE location data is required", Toast.LENGTH_SHORT).show();
+            }else{
+                requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+            }
+        }else{
+            Toast.makeText(this, "Location permissions already granted", Toast.LENGTH_SHORT).show();
+        }
 
         //If bluetooth off, ask to turn on
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -80,6 +86,11 @@ public class MainActivity extends AppCompatActivity {
         }  else {
             Log.e(TAG, "could not get scanner object");
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 
     @Override
@@ -145,18 +156,18 @@ public class MainActivity extends AppCompatActivity {
         public void onScanResult(int callbackType, ScanResult result) {
             BluetoothDevice device = result.getDevice();
             //Will need to filter based on UUID (maybe also name and RSSI value)
-            //TODO: Should not have empty catch - find better way to implement
             //TODO: Shouldn't be getting dupes because of ArrayList but we are - fio
             //TODO: Add loading bar - not urgent but would look nice
             try {
                 if (!device.getName().equals("null")) {
                     devices.add(device);
                 }
-            } catch (Exception e){}
+            } catch (Exception e){
+                Log.d(TAG, "Device name is null");
+            }
 
             //TODO: Figure out why size not always set at 10 - not actually stopping or is at least restarting the scan
-            //TODO: Change this in case 5 devices can't be found - don't want to get NPE
-            if (devices.size() == 5) {
+            if (devices.size() > 0) {
                 scanner.stopScan(scanCallback);
                 for (BluetoothDevice dev : devices) {
                     deviceNames.add(dev.getName());
@@ -165,16 +176,5 @@ public class MainActivity extends AppCompatActivity {
                 onResume();
             }
         }
-
-        @Override
-        public void onBatchScanResults(List<ScanResult> results) {
-            // Ignore for now
-        }
-
-        @Override
-        public void onScanFailed(int errorCode) {
-            // Ignore for now
-        }
-
     };
 }
