@@ -4,9 +4,13 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothGattCallback;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -15,6 +19,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.TextView;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 import static android.bluetooth.BluetoothDevice.TRANSPORT_LE;
 
@@ -44,6 +52,8 @@ public class ReadDevice extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter;
     private String bluetoothDeviceAddress;
     private BluetoothGatt bluetoothGatt;
+    BluetoothGattCharacteristic characteristic;
+    boolean enabled;
     int connectionState = BluetoothProfile.STATE_DISCONNECTED;
 
     private static final String TAG = "ReadDevice";
@@ -52,16 +62,7 @@ public class ReadDevice extends AppCompatActivity {
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
 
-    final static String ACTION_GATT_CONNECTED =
-            "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
-    public final static String ACTION_GATT_DISCONNECTED =
-            "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
-    public final static String ACTION_GATT_SERVICES_DISCOVERED =
-            "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
-    public final static String ACTION_DATA_AVAILABLE =
-            "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
-    public final static String EXTRA_DATA =
-            "com.example.bluetooth.le.EXTRA_DATA";
+    private static final String serviceUUID = "00001809-0000-1000-8000-00805f9b34fb";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -82,16 +83,32 @@ public class ReadDevice extends AppCompatActivity {
         final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
             @Override
             public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
-                String intentAction;
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    intentAction = ACTION_GATT_CONNECTED;
                     connectionState = STATE_CONNECTED;
                     Log.d(TAG, "YOU FUCKING DID IT!!!!!!!!!!");
+                    gatt.discoverServices();
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    intentAction = ACTION_GATT_DISCONNECTED;
                     connectionState = STATE_DISCONNECTED;
                     gatt.close();
                     goBackToScan();
+                }
+            }
+
+            @Override
+            // New services discovered
+            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+                if (status == 129) {
+                    Log.e(TAG, "Service discovery failed");
+                    gatt.disconnect();
+                }
+                else {
+                    final List<BluetoothGattService> services = gatt.getServices();
+                    Log.i(TAG, String.format(Locale.ENGLISH,"discovered %d services", services.size()));
+                    characteristic = new BluetoothGattCharacteristic(UUID.fromString(serviceUUID), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PROPERTY_EXTENDED_PROPS );
+                    enabled = true;
+                    gatt.setCharacteristicNotification(characteristic, enabled);
+                    BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
+                            UUID.fromString(serviceUUID));
                 }
             }
 
@@ -101,7 +118,7 @@ public class ReadDevice extends AppCompatActivity {
                                              BluetoothGattCharacteristic characteristic,
                                              int status) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
-                    //Show it in the app??
+                    broadcastUpdate(characteristic);
                 }
             }
         };
@@ -119,18 +136,47 @@ public class ReadDevice extends AppCompatActivity {
 
     }
 
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId()== android.R.id.home) {
-            Intent intent = NavUtils.getParentActivityIntent(this);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            NavUtils.navigateUpTo(this, intent);
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
     public void goBackToScan() {
         Intent intent = new Intent(this, MainActivity.class);
         startActivity(intent);
+    }
+
+    public void onCharacteristicRead(BluetoothGatt gatt,
+                                     BluetoothGattCharacteristic characteristic,
+                                     int status) {
+        if (status == BluetoothGatt.GATT_SUCCESS) {
+            broadcastUpdate(characteristic);
+        }
+    }
+
+    public void onCharacteristicChanged(BluetoothGatt gatt,
+                                        BluetoothGattCharacteristic characteristic) {
+        broadcastUpdate(characteristic);
+    }
+
+    private void broadcastUpdate(final BluetoothGattCharacteristic characteristic) {
+        // This is special handling for the Heart Rate Measurement profile. Data
+        // parsing is carried out as per profile specifications.
+        if (serviceUUID.equals(characteristic.getUuid())) {
+            int flag = characteristic.getProperties();
+            int format = -1;
+            if ((flag & 0x01) != 0) {
+                format = BluetoothGattCharacteristic.FORMAT_UINT16;
+                Log.d(TAG, "Heart rate format UINT16.");
+            } else {
+                format = BluetoothGattCharacteristic.FORMAT_UINT8;
+                Log.d(TAG, "Heart rate format UINT8.");
+            }
+            final int heartRate = characteristic.getIntValue(format, 1);
+            Log.d(TAG, String.format("Received heart rate: %d", heartRate));
+        } else {
+            // For all other profiles, writes the data formatted in HEX.
+            final byte[] data = characteristic.getValue();
+            if (data != null && data.length > 0) {
+                final StringBuilder stringBuilder = new StringBuilder(data.length);
+                for(byte byteChar : data)
+                    stringBuilder.append(String.format("%02X ", byteChar));
+            }
+        }
     }
 }
