@@ -22,9 +22,13 @@ import android.widget.TextView;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Queue;
 import java.util.UUID;
 
 import static android.bluetooth.BluetoothDevice.TRANSPORT_LE;
+import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE;
+import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY;
+import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_READ;
 
 /** Modified from:
  * https://medium.com/@martijn.van.welie/making-android-ble-work-part-2-47a3cdaade07
@@ -62,7 +66,8 @@ public class ReadDevice extends AppCompatActivity {
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
 
-    private static final String serviceUUID = "00001809-0000-1000-8000-00805f9b34fb";
+    //private static final String serviceUUID = "00001809-0000-1000-8000-00805f9b34fb";
+    private static final String serviceUUID = "19B10000-E8F2-537E-4F6C-D104768A1214";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -103,12 +108,37 @@ public class ReadDevice extends AppCompatActivity {
                 }
                 else {
                     final List<BluetoothGattService> services = gatt.getServices();
-                    Log.i(TAG, String.format(Locale.ENGLISH,"discovered %d services", services.size()));
-                    characteristic = new BluetoothGattCharacteristic(UUID.fromString(serviceUUID), BluetoothGattCharacteristic.PERMISSION_READ, BluetoothGattCharacteristic.PROPERTY_EXTENDED_PROPS );
-                    enabled = true;
-                    gatt.setCharacteristicNotification(characteristic, enabled);
+                    Log.i(TAG, String.format(Locale.ENGLISH, "discovered %d services", services.size()));
+                    characteristic = new BluetoothGattCharacteristic(UUID.fromString(serviceUUID),
+                            BluetoothGattCharacteristic.PERMISSION_WRITE | BluetoothGattCharacteristic.PERMISSION_READ,
+                            BluetoothGattCharacteristic.PROPERTY_WRITE | BluetoothGattCharacteristic.PROPERTY_READ);
+                    //Set notification
+                    gatt.setCharacteristicNotification(characteristic, true);
+
+                    //This line is null object
+                    boolean result = gatt.readCharacteristic(characteristic);
+
+                    byte[] value;
+                    int properties = characteristic.getProperties();
+                    if ((properties & PROPERTY_NOTIFY) > 0) {
+                        value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
+                    } else if ((properties & PROPERTY_INDICATE) > 0) {
+                        value = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE;
+                    } else {
+                        Log.e(TAG, String.format("ERROR: Characteristic %s does not have notify or indicate property", characteristic.getUuid()));
+                    }
+
+                    if (result) {
+                        Log.d(TAG, "IT WORKED");
+                    } else {
+                        Log.e(TAG, "ERROR: Could not enqueue read characteristic command");
+                    }
+
                     BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
-                            UUID.fromString(serviceUUID));
+                            characteristic.getUuid());
+                    descriptor.setValue( BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+
+                    Log.d(TAG, "fuck me");
                 }
             }
 
@@ -118,7 +148,7 @@ public class ReadDevice extends AppCompatActivity {
                                              BluetoothGattCharacteristic characteristic,
                                              int status) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
-                    broadcastUpdate(characteristic);
+                    displayVal(characteristic);
                 }
             }
         };
@@ -145,38 +175,17 @@ public class ReadDevice extends AppCompatActivity {
                                      BluetoothGattCharacteristic characteristic,
                                      int status) {
         if (status == BluetoothGatt.GATT_SUCCESS) {
-            broadcastUpdate(characteristic);
+            displayVal(characteristic);
         }
     }
 
     public void onCharacteristicChanged(BluetoothGatt gatt,
                                         BluetoothGattCharacteristic characteristic) {
-        broadcastUpdate(characteristic);
+        displayVal(characteristic);
     }
 
-    private void broadcastUpdate(final BluetoothGattCharacteristic characteristic) {
-        // This is special handling for the Heart Rate Measurement profile. Data
-        // parsing is carried out as per profile specifications.
-        if (serviceUUID.equals(characteristic.getUuid())) {
-            int flag = characteristic.getProperties();
-            int format = -1;
-            if ((flag & 0x01) != 0) {
-                format = BluetoothGattCharacteristic.FORMAT_UINT16;
-                Log.d(TAG, "Heart rate format UINT16.");
-            } else {
-                format = BluetoothGattCharacteristic.FORMAT_UINT8;
-                Log.d(TAG, "Heart rate format UINT8.");
-            }
-            final int heartRate = characteristic.getIntValue(format, 1);
-            Log.d(TAG, String.format("Received heart rate: %d", heartRate));
-        } else {
-            // For all other profiles, writes the data formatted in HEX.
-            final byte[] data = characteristic.getValue();
-            if (data != null && data.length > 0) {
-                final StringBuilder stringBuilder = new StringBuilder(data.length);
-                for(byte byteChar : data)
-                    stringBuilder.append(String.format("%02X ", byteChar));
-            }
-        }
+    public void displayVal(BluetoothGattCharacteristic characteristic) {
+        TextView setDeviceReading = (TextView) findViewById(R.id.deviceReading);
+        setDeviceReading.setText(characteristic.toString());
     }
 }
