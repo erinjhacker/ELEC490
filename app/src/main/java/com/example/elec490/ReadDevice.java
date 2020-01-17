@@ -67,14 +67,18 @@ public class ReadDevice extends AppCompatActivity {
     private static final int STATE_CONNECTED = 2;
 
     //private static final String serviceUUID = "00001809-0000-1000-8000-00805f9b34fb";
-    private static final String serviceUUID = "19B10000-E8F2-537E-4F6C-D104768A1214";
+    private static final UUID serviceUUID = UUID.nameUUIDFromBytes("1809".getBytes());
+    UUID charUUID = UUID.nameUUIDFromBytes("2A1C".getBytes());
+
+
+    byte[] value;
+    String stringVal;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_read);
 
-        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         //Set name of connected device
@@ -109,34 +113,22 @@ public class ReadDevice extends AppCompatActivity {
                 else {
                     final List<BluetoothGattService> services = gatt.getServices();
                     Log.i(TAG, String.format(Locale.ENGLISH, "discovered %d services", services.size()));
-                    characteristic = new BluetoothGattCharacteristic(UUID.fromString(serviceUUID),
+                    characteristic = new BluetoothGattCharacteristic(serviceUUID,
                             BluetoothGattCharacteristic.PERMISSION_WRITE | BluetoothGattCharacteristic.PERMISSION_READ,
                             BluetoothGattCharacteristic.PROPERTY_WRITE | BluetoothGattCharacteristic.PROPERTY_READ);
-                    //Set notification
-                    gatt.setCharacteristicNotification(characteristic, true);
 
-                    //This line is null object
-                    boolean result = gatt.readCharacteristic(characteristic);
-
-                    byte[] value;
+                    // Check if characteristic has NOTIFY or INDICATE properties and set the correct byte value to be written
                     int properties = characteristic.getProperties();
                     if ((properties & PROPERTY_NOTIFY) > 0) {
                         value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
-                    } else if ((properties & PROPERTY_INDICATE) > 0) {
-                        value = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE;
+                        Log.d(TAG, "fuck");
                     } else {
                         Log.e(TAG, String.format("ERROR: Characteristic %s does not have notify or indicate property", characteristic.getUuid()));
                     }
-
-                    if (result) {
-                        Log.d(TAG, "IT WORKED");
-                    } else {
-                        Log.e(TAG, "ERROR: Could not enqueue read characteristic command");
+                    //Set notification
+                    if (value.length > 0) {
+                        gatt.setCharacteristicNotification(characteristic, true);
                     }
-
-                    BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
-                            characteristic.getUuid());
-                    descriptor.setValue( BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
 
                     Log.d(TAG, "fuck me");
                 }
@@ -148,7 +140,8 @@ public class ReadDevice extends AppCompatActivity {
                                              BluetoothGattCharacteristic characteristic,
                                              int status) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
-                    displayVal(characteristic);
+                    byte[] reading = characteristic.getValue();
+                    displayVal(stringVal);
                 }
             }
         };
@@ -175,17 +168,19 @@ public class ReadDevice extends AppCompatActivity {
                                      BluetoothGattCharacteristic characteristic,
                                      int status) {
         if (status == BluetoothGatt.GATT_SUCCESS) {
-            displayVal(characteristic);
+            byte[] reading = characteristic.getValue();
+            displayVal(stringVal);
         }
     }
 
     public void onCharacteristicChanged(BluetoothGatt gatt,
                                         BluetoothGattCharacteristic characteristic) {
-        displayVal(characteristic);
+        byte[] reading = characteristic.getValue();
+        displayVal(stringVal);
     }
 
-    public void displayVal(BluetoothGattCharacteristic characteristic) {
+    public void displayVal(String sensorReading) {
         TextView setDeviceReading = (TextView) findViewById(R.id.deviceReading);
-        setDeviceReading.setText(characteristic.toString());
+        setDeviceReading.setText(sensorReading);
     }
 }
