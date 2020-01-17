@@ -25,7 +25,12 @@ import java.util.Locale;
 import java.util.Queue;
 import java.util.UUID;
 
+import static android.bluetooth.BluetoothDevice.BOND_BONDED;
+import static android.bluetooth.BluetoothDevice.BOND_BONDING;
+import static android.bluetooth.BluetoothDevice.BOND_NONE;
 import static android.bluetooth.BluetoothDevice.TRANSPORT_LE;
+import static android.bluetooth.BluetoothGatt.GATT_INSUFFICIENT_AUTHENTICATION;
+import static android.bluetooth.BluetoothGatt.GATT_SUCCESS;
 import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE;
 import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY;
 import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_READ;
@@ -74,12 +79,16 @@ public class ReadDevice extends AppCompatActivity {
     byte[] value;
     String stringVal;
 
+    BluetoothDevice device;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_read);
 
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        BluetoothManager manager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter mbluetoothAdapter = manager.getAdapter();
+
 
         //Set name of connected device
         String deviceName = getIntent().getExtras().getString("deviceName");
@@ -92,14 +101,23 @@ public class ReadDevice extends AppCompatActivity {
         final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
             @Override
             public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
-                if (newState == BluetoothProfile.STATE_CONNECTED) {
+                if ((newState == BluetoothProfile.STATE_CONNECTED) && (status == GATT_SUCCESS)) {
                     connectionState = STATE_CONNECTED;
                     Log.d(TAG, "YOU FUCKING DID IT!!!!!!!!!!");
-                    gatt.discoverServices();
-                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                    int bondstate = device.getBondState();
+                    if (bondstate == BOND_BONDED || bondstate == BOND_NONE) {
+                        Log.d(TAG, "Bonded");
+                        gatt.discoverServices();
+                    } else if (bondstate == BOND_BONDING) {
+                        // Bonding process has already started let it complete
+                        Log.i(TAG, "waiting for bonding to complete");
+                    }
+                } else if ((newState == BluetoothProfile.STATE_DISCONNECTED) && (status == BluetoothGatt.GATT)) {
                     connectionState = STATE_DISCONNECTED;
                     gatt.close();
                     goBackToScan();
+                } else {
+                    Log.e(TAG, "Possible Timeout");
                 }
             }
 
@@ -113,10 +131,13 @@ public class ReadDevice extends AppCompatActivity {
                 else {
                     final List<BluetoothGattService> services = gatt.getServices();
                     Log.i(TAG, String.format(Locale.ENGLISH, "discovered %d services", services.size()));
-                    characteristic = new BluetoothGattCharacteristic(serviceUUID,
-                            BluetoothGattCharacteristic.PERMISSION_WRITE | BluetoothGattCharacteristic.PERMISSION_READ,
-                            BluetoothGattCharacteristic.PROPERTY_WRITE | BluetoothGattCharacteristic.PROPERTY_READ);
-
+                    for (BluetoothGattService service : services) {
+                        for (BluetoothGattCharacteristic serviceCharacteristic : service.getCharacteristics()) {
+                            if (serviceCharacteristic.getUuid() == charUUID) {
+                                characteristic = serviceCharacteristic;
+                            }
+                        }
+                    }
                     // Check if characteristic has NOTIFY or INDICATE properties and set the correct byte value to be written
                     int properties = characteristic.getProperties();
                     if ((properties & PROPERTY_NOTIFY) > 0) {
@@ -128,6 +149,10 @@ public class ReadDevice extends AppCompatActivity {
                     //Set notification
                     if (value.length > 0) {
                         gatt.setCharacteristicNotification(characteristic, true);
+                        UUID actualUUID = characteristic.getUuid();
+                        if (actualUUID == charUUID) {
+                            gatt.readCharacteristic(characteristic);
+                        }
                     }
 
                     Log.d(TAG, "fuck me");
@@ -139,7 +164,16 @@ public class ReadDevice extends AppCompatActivity {
             public void onCharacteristicRead(BluetoothGatt gatt,
                                              BluetoothGattCharacteristic characteristic,
                                              int status) {
-                if (status == BluetoothGatt.GATT_SUCCESS) {
+                // Perform some checks on the status field
+                if (status != GATT_SUCCESS) {
+                    if (status == GATT_INSUFFICIENT_AUTHENTICATION ) {
+                        // Characteristic encrypted and needs bonding,
+                        // So retry operation after bonding completes
+                        // This only happens on Android 5/6/7
+                        Log.w(TAG, "read needs bonding, bonding in progress");
+                    } else {
+                        Log.e(TAG, String.format(Locale.ENGLISH,"ERROR: Read failed for characteristic: %s, status %d", characteristic.getUuid(), status));
+                    }
                     byte[] reading = characteristic.getValue();
                     displayVal(stringVal);
                 }
@@ -149,7 +183,7 @@ public class ReadDevice extends AppCompatActivity {
         //Connect to the device
         String deviceAddr = getIntent().getExtras().getString("deviceAddr");
         Log.d(TAG, deviceAddr);
-        BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddr);
+        device = mbluetoothAdapter.getRemoteDevice(deviceAddr);
         BluetoothGatt gatt = device.connectGatt(this, false, gattCallback, TRANSPORT_LE);
     }
 
@@ -167,7 +201,7 @@ public class ReadDevice extends AppCompatActivity {
     public void onCharacteristicRead(BluetoothGatt gatt,
                                      BluetoothGattCharacteristic characteristic,
                                      int status) {
-        if (status == BluetoothGatt.GATT_SUCCESS) {
+        if (status == GATT_SUCCESS) {
             byte[] reading = characteristic.getValue();
             displayVal(stringVal);
         }
