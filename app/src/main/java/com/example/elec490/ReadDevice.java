@@ -219,3 +219,4 @@ public class ReadDevice extends AppCompatActivity {
         setDeviceReading.setText(sensorReading);
     }
 }
+
