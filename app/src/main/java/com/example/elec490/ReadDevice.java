@@ -134,6 +134,7 @@ public class ReadDevice extends AppCompatActivity {
                     for (BluetoothGattService service : services) {
                         for (BluetoothGattCharacteristic serviceCharacteristic : service.getCharacteristics()) {
                             if (serviceCharacteristic.getUuid() == charUUID) {
+                                //They're never equal - fio
                                 characteristic = serviceCharacteristic;
                             }
                         }
