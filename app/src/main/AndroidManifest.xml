@@ -27,8 +27,12 @@
             </intent-filter>
         </activity>
         <activity
-            android:label="Read Device"
+            android:label="Reading Device"
             android:name=".ReadDevice" >
+        </activity>
+        <activity
+            android:label="Reading Device"
+            android:name=".UpdateDeviceReading" >
         </activity>
     </application>
 

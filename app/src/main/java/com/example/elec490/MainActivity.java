@@ -126,8 +126,7 @@ public class MainActivity extends AppCompatActivity {
         //Not sure which extras are needed
         intent.putExtra("deviceName", device.getName());
         intent.putExtra("deviceAddr", device.getAddress());
-        intent.putExtra("deviceType", device.getType());
-        intent.putExtra("deviceUuids", device.getUuids());
+        intent.putExtra("sensorVal","Reading...");
         startActivity(intent);
     }
 
@@ -167,7 +166,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             //TODO: Figure out why size not always set at 10 - not actually stopping or is at least restarting the scan
-            if (devices.size() > 0) {
+            if (devices.size() > 1) {
                 scanner.stopScan(scanCallback);
                 for (BluetoothDevice dev : devices) {
                     deviceNames.add(dev.getName());
