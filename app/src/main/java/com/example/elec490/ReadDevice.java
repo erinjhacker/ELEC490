@@ -61,10 +61,13 @@ public class ReadDevice extends AppCompatActivity {
 
     private int flag = 0;
 
-    private static final UUID serviceUUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214");
-    private static final UUID charUUID = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214");
-//    private static final UUID serviceUUID = UUID.fromString("00001809-0000-1000-8000-00805F9B34FB");
-//    private static final UUID charUUID = UUID.fromString("00002A1C-0000-1000-8000-00805F9B34FB");
+    //    private static final UUID serviceUUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214");
+//    private static final UUID charUUID = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214");
+    private static final UUID serviceUUID = UUID.fromString("00001809-0000-1000-8000-00805F9B34FB");
+    private static final UUID charUUID = UUID.fromString("00002A1C-0000-1000-8000-00805F9B34FB");
+    //UUID CLIENT_CHARACTERISTIC_CONFIG_UUID = convertFromInteger(0x2902);
+    private static final UUID configUUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
+
 
 
     byte[] value;
@@ -159,11 +162,25 @@ public class ReadDevice extends AppCompatActivity {
                     if (value.length > 0) {
                         gatt.setCharacteristicNotification(characteristic, true);
                         UUID actualUUID = characteristic.getUuid();
+                        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(configUUID);
+
+                        descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+
+                        gatt.writeDescriptor(descriptor);
                         if (actualUUID.equals(charUUID)) {
                             gatt.readCharacteristic(characteristic);
                         }
                     }
                 }
+            }
+
+            @Override
+            public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+                BluetoothGattCharacteristic characteristic = gatt.getService(serviceUUID).getCharacteristic(charUUID);
+
+                characteristic.setValue(new byte[]{1,1});
+                gatt.writeCharacteristic(characteristic);
+                // gatt.readCharacteristic(characteristic);
             }
 
             @Override
@@ -194,7 +211,7 @@ public class ReadDevice extends AppCompatActivity {
             @Override
             // Result of a characteristic read operation
             public void onCharacteristicChanged(BluetoothGatt gatt,
-                                             BluetoothGattCharacteristic characteristic) {
+                                                BluetoothGattCharacteristic characteristic) {
                 super.onCharacteristicChanged(gatt, characteristic);
                 if (flag == 0) {
                     flag = 1;
