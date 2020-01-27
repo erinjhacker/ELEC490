@@ -61,13 +61,17 @@ public class ReadDevice extends AppCompatActivity {
 
     private int flag = 0;
 
-    //    private static final UUID serviceUUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214");
+    //Arduino ids
+//    private static final UUID serviceUUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214");
 //    private static final UUID charUUID = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214");
+//    private static final UUID configUUID = UUID.fromString("19B12902-E8F2-537E-4F6C-D104768A1214");
+
+    //BGM ids for temperature sensor
     private static final UUID serviceUUID = UUID.fromString("00001809-0000-1000-8000-00805F9B34FB");
     private static final UUID charUUID = UUID.fromString("00002A1C-0000-1000-8000-00805F9B34FB");
-    //UUID CLIENT_CHARACTERISTIC_CONFIG_UUID = convertFromInteger(0x2902);
     private static final UUID configUUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
 
+    //BGM ids for custom service (our sensor)
 
 
     byte[] value;
@@ -180,34 +184,34 @@ public class ReadDevice extends AppCompatActivity {
 
                 characteristic.setValue(new byte[]{1,1});
                 gatt.writeCharacteristic(characteristic);
-                // gatt.readCharacteristic(characteristic);
             }
 
-            @Override
-            // Result of a characteristic read operation
-            public void onCharacteristicRead(BluetoothGatt gatt,
-                                             BluetoothGattCharacteristic characteristic,
-                                             int status) {
-                super.onCharacteristicRead(gatt, characteristic, status);
-                if (flag == 0) {
-                    flag = 1;
-                    // Perform some checks on the status field
-                    if (status != GATT_SUCCESS) {
-                        if (status == GATT_INSUFFICIENT_AUTHENTICATION) {
-                            // Characteristic encrypted and needs bonding,
-                            // So retry operation after bonding completes
-                            // This only happens on Android 5/6/7
-                            Log.w(TAG, "read needs bonding, bonding in progress");
-                        } else {
-                            Log.e(TAG, String.format(Locale.ENGLISH, "ERROR: Read failed for characteristic: %s, status %d", characteristic.getUuid(), status));
-                        }
-                    }
-                    byte[] reading = characteristic.getValue();
-                    displayVal(reading);
-                }
-                flag = 0;
-            }
+//            @Override
+//            // Result of a characteristic read operation
+//            public void onCharacteristicRead(BluetoothGatt gatt,
+//                                             BluetoothGattCharacteristic characteristic,
+//                                             int status) {
+//                super.onCharacteristicRead(gatt, characteristic, status);
+//                if (flag == 0) {
+//                    flag = 1;
+//                    // Perform some checks on the status field
+//                    if (status != GATT_SUCCESS) {
+//                        if (status == GATT_INSUFFICIENT_AUTHENTICATION) {
+//                            // Characteristic encrypted and needs bonding,
+//                            // So retry operation after bonding completes
+//                            // This only happens on Android 5/6/7
+//                            Log.w(TAG, "read needs bonding, bonding in progress");
+//                        } else {
+//                            Log.e(TAG, String.format(Locale.ENGLISH, "ERROR: Read failed for characteristic: %s, status %d", characteristic.getUuid(), status));
+//                        }
+//                    }
+//                    byte[] reading = characteristic.getValue();
+//                    displayVal(String.valueOf(reading[1]));
+//                }
+//                flag = 0;
+//            }
 
+            //TODO: This is triggered from notify, not read - handle 5 bytes in here so this works with the BGM
             @Override
             // Result of a characteristic read operation
             public void onCharacteristicChanged(BluetoothGatt gatt,
@@ -216,11 +220,12 @@ public class ReadDevice extends AppCompatActivity {
                 if (flag == 0) {
                     flag = 1;
                     byte[] reading = characteristic.getValue();
-                    displayVal(reading);
+                    displayVal(String.valueOf(reading[1]));
                 }
                 flag = 0;
             }
 
+            //TODO: Can probably take this out
             @Override
             public void onPhyRead(BluetoothGatt gatt, int txPhy, int rxPhy, int status) {
                 super.onPhyRead(gatt, txPhy, rxPhy, status);
@@ -245,8 +250,8 @@ public class ReadDevice extends AppCompatActivity {
         startActivity(intent);
     }
 
-    public void displayVal(byte[] sensorReading) {
-        sensorVal = String.valueOf(sensorReading[0]);
+    public void displayVal(String sensorVal) {
+        //TODO: Always displaying 0 - need to add ability to read 5 byte values, not just first byte
 
         //Update in new activity
         Intent intent = new Intent(this, UpdateDeviceReading.class);
