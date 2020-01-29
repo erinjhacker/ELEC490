@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 
@@ -40,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
+    private ProgressBar spinner;
+
     HashSet<BluetoothDevice> devices = new HashSet<>();
     ArrayList<String> deviceNames = new ArrayList<>();
 
@@ -50,9 +53,12 @@ public class MainActivity extends AppCompatActivity {
     BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
     BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
 
+    //TODO: Try to get a rescan button
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getSupportActionBar().hide();
         setContentView(R.layout.activity_main);
 
         int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
@@ -79,6 +85,9 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        spinner = (ProgressBar)findViewById(R.id.progressBar1);
+        spinner.setVisibility(View.VISIBLE);
+
         //Scan for device
         if (scanner != null) {
             scanner.startScan(scanCallback);
@@ -96,29 +105,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
-        final ListView simpleList = (ListView)findViewById(R.id.devices);
-        ArrayAdapter adapter = new ArrayAdapter<String>(
-                this, R.layout.activity_listview, R.id.textView, deviceNames);
-        simpleList.setAdapter(adapter);
-        simpleList.setClickable(true);
-        simpleList.setTextFilterEnabled(true);
-        simpleList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
-            public void onItemClick(AdapterView<?> arg0, View view, int position, long id) {
-            String deviceName=(String) simpleList.getItemAtPosition(position);
-
-            for (BluetoothDevice device : devices) {
-                if (device.getName().equals(deviceName))
-                {
-                    chosenDevice = device;
-                }
-            }
-
-            goToReadDevice(chosenDevice);
-            }
-
-        });
     }
 
     protected void goToReadDevice(BluetoothDevice device) {
@@ -155,25 +141,41 @@ public class MainActivity extends AppCompatActivity {
         public void onScanResult(int callbackType, ScanResult result) {
             BluetoothDevice device = result.getDevice();
             //Will need to filter based on UUID (maybe also name and RSSI value)
-            //TODO: Shouldn't be getting dupes because of ArrayList but we are - fio
-            //TODO: Add loading bar - not urgent but would look nice
             try {
-                if (!device.getName().equals("null")) {
+                //Look for specified device using set naming convention (e.g. .contains("CS-"))
+                //TODO: Still getting dupes - try to fio
+                if (device.getName().contains("Cow")) {
+                    setProgressBarIndeterminateVisibility(false);
+                    spinner.setVisibility(View.GONE);
                     devices.add(device);
+                    deviceNames.add(device.getName());
+                    scanner.stopScan(scanCallback);
+                    listDevices();
                 }
             } catch (Exception e){
                 Log.d(TAG, "Device name is null");
             }
-
-            //TODO: Figure out why size not always set at 10 - not actually stopping or is at least restarting the scan
-            if (devices.size() > 1) {
-                scanner.stopScan(scanCallback);
-                for (BluetoothDevice dev : devices) {
-                    deviceNames.add(dev.getName());
-                }
-                //TODO: Create new method - don't use onResume - likely why there are dupes
-                onResume();
-            }
         }
     };
+
+    public void listDevices() {
+        final ListView simpleList = (ListView)findViewById(R.id.devices);
+        ArrayAdapter adapter = new ArrayAdapter<String>(
+                this, R.layout.activity_listview, R.id.textView, deviceNames);
+        simpleList.setAdapter(adapter);
+        simpleList.setClickable(true);
+        simpleList.setTextFilterEnabled(true);
+        simpleList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick (AdapterView < ? > arg0, View view,int position, long id){
+                String deviceName = (String) simpleList.getItemAtPosition(position);
+
+                for (BluetoothDevice device : devices) {
+                    if (device.getName().equals(deviceName)) {
+                        chosenDevice = device;
+                    }
+                }
+                goToReadDevice(chosenDevice);
+            }
+        });
+    }
 }

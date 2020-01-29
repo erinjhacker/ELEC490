@@ -17,6 +17,13 @@
         android:layout_width="match_parent"
         android:layout_height="30sp" />
 
+    <ProgressBar
+        android:id="@+id/progressBar1"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center" />
+
     <ListView
         android:id="@+id/devices"
         android:layout_width="match_parent"
@@ -24,6 +31,7 @@
         android:gravity="center"
         android:divider="#0C0E0D0D"
         android:dividerHeight="1dp"
-        android:listSelector="#0C0E0D0D"/>
+        android:listSelector="#0C0E0D0D">
+    </ListView>
 
 </LinearLayout>
