@@ -4,11 +4,18 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <Button
+        android:id="@+id/rescan"
+        android:layout_width="200sp"
+        android:layout_height="wrap_content"
+        android:text="Scan Again"
+        android:layout_marginTop="20sp"/>
+
     <TextView
         android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="100sp"
+        android:layout_marginTop="20sp"
         android:gravity="center"
         android:text="Connect to a device"
         android:textSize="30sp" />

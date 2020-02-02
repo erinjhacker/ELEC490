@@ -22,4 +22,10 @@
         android:layout_gravity="center"
         android:gravity="center"
         android:textSize="50sp" />
+
+<!--    <com.jjoe64.graphview.GraphView-->
+<!--        android:id="@+id/graph"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="200dip"-->
+<!--        android:layout_marginTop="100sp"/>-->
 </LinearLayout>

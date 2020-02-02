@@ -17,6 +17,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -95,6 +96,14 @@ public class MainActivity extends AppCompatActivity {
         }  else {
             Log.e(TAG, "could not get scanner object");
         }
+
+        final Button rescan = findViewById(R.id.rescan);
+        rescan.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                finish();
+                startActivity(getIntent());
+            }
+        });
     }
 
     @Override
@@ -144,14 +153,14 @@ public class MainActivity extends AppCompatActivity {
             try {
                 //Look for specified device using set naming convention (e.g. .contains("CS-"))
                 //TODO: Still getting dupes - try to fio
-                if (device.getName().contains("Cow")) {
+                //if (device.getName().contains("Cow")) {
                     setProgressBarIndeterminateVisibility(false);
                     spinner.setVisibility(View.GONE);
                     devices.add(device);
                     deviceNames.add(device.getName());
                     scanner.stopScan(scanCallback);
                     listDevices();
-                }
+                //}
             } catch (Exception e){
                 Log.d(TAG, "Device name is null");
             }
