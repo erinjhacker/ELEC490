@@ -165,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 //Look for specified device using set naming convention (e.g. .contains("CS-"))
                 //TODO: Still getting dupes - try to fio
-                if (device.getName().contains("Cow")) {
+                if (device.getName().contains("CS")) {
                     setProgressBarIndeterminateVisibility(false);
                     spinner.setVisibility(View.GONE);
                     devices.add(device);
