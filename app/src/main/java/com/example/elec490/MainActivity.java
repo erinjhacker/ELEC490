@@ -23,8 +23,13 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 
+import com.jjoe64.graphview.series.DataPoint;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
+
+import static android.content.Intent.FLAG_ACTIVITY_NO_ANIMATION;
 
 /** Modified from:
  * https://medium.com/@martijn.van.welie/making-android-ble-work-part-1-a736dcd53b02
@@ -54,7 +59,8 @@ public class MainActivity extends AppCompatActivity {
     BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
     BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
 
-    //TODO: Try to get a rescan button
+    //Create empty graph dataset
+    ArrayList<DataPoint> dataPoints = new ArrayList<>();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -101,7 +107,9 @@ public class MainActivity extends AppCompatActivity {
         rescan.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 finish();
-                startActivity(getIntent());
+                //TODO: Still has animation - get rid of it
+                Intent intent = getIntent().addFlags(FLAG_ACTIVITY_NO_ANIMATION);
+                startActivity(intent);
             }
         });
     }
@@ -122,6 +130,10 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("deviceName", device.getName());
         intent.putExtra("deviceAddr", device.getAddress());
         intent.putExtra("sensorVal","Reading...");
+        intent.putExtra("count", 0);
+        Bundle args = new Bundle();
+        args.putSerializable("dataPoints", (Serializable) dataPoints);
+        intent.putExtra("BUNDLE", args);
         startActivity(intent);
     }
 
@@ -153,14 +165,14 @@ public class MainActivity extends AppCompatActivity {
             try {
                 //Look for specified device using set naming convention (e.g. .contains("CS-"))
                 //TODO: Still getting dupes - try to fio
-                //if (device.getName().contains("Cow")) {
+                if (device.getName().contains("Cow")) {
                     setProgressBarIndeterminateVisibility(false);
                     spinner.setVisibility(View.GONE);
                     devices.add(device);
                     deviceNames.add(device.getName());
                     scanner.stopScan(scanCallback);
                     listDevices();
-                //}
+                }
             } catch (Exception e){
                 Log.d(TAG, "Device name is null");
             }
@@ -176,14 +188,14 @@ public class MainActivity extends AppCompatActivity {
         simpleList.setTextFilterEnabled(true);
         simpleList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick (AdapterView < ? > arg0, View view,int position, long id){
-                String deviceName = (String) simpleList.getItemAtPosition(position);
+            String deviceName = (String) simpleList.getItemAtPosition(position);
 
-                for (BluetoothDevice device : devices) {
-                    if (device.getName().equals(deviceName)) {
-                        chosenDevice = device;
-                    }
+            for (BluetoothDevice device : devices) {
+                if (device.getName().equals(deviceName)) {
+                    chosenDevice = device;
                 }
-                goToReadDevice(chosenDevice);
+            }
+            goToReadDevice(chosenDevice);
             }
         });
     }

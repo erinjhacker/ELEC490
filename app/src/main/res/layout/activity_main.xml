@@ -6,7 +6,7 @@
 
     <Button
         android:id="@+id/rescan"
-        android:layout_width="200sp"
+        android:layout_width="175sp"
         android:layout_height="wrap_content"
         android:text="Scan Again"
         android:layout_marginTop="20sp"/>

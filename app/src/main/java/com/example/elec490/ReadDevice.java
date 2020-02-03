@@ -15,8 +15,16 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
+
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -29,6 +37,7 @@ import static android.bluetooth.BluetoothGatt.GATT_INSUFFICIENT_AUTHENTICATION;
 import static android.bluetooth.BluetoothGatt.GATT_SUCCESS;
 import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE;
 import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY;
+import static android.content.Intent.FLAG_ACTIVITY_NO_ANIMATION;
 
 /** Modified from:
  * https://medium.com/@martijn.van.welie/making-android-ble-work-part-2-47a3cdaade07
@@ -82,6 +91,12 @@ public class ReadDevice extends AppCompatActivity {
 
     String sensorVal;
 
+    ArrayList<DataPoint> dataPoints;
+
+    int count;
+
+    boolean error = false;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,6 +115,27 @@ public class ReadDevice extends AppCompatActivity {
         TextView setDeviceReading = (TextView) findViewById(R.id.deviceReading);
         setDeviceReading.setText(sensorVal);
 
+        Bundle args = getIntent().getBundleExtra("BUNDLE");
+        dataPoints = (ArrayList<DataPoint>) args.getSerializable("dataPoints");
+
+        final GraphView graph = (GraphView) findViewById(R.id.graph);
+        graph.setVisibility(View.VISIBLE);
+
+        count = getIntent().getExtras().getInt("count");
+
+        //Create graph
+        if (dataPoints.size() > 0) {
+            try {
+                LineGraphSeries<DataPoint> series = new LineGraphSeries<>();
+                for (DataPoint dataPoint : dataPoints) {
+                    series.appendData(dataPoint, true, dataPoints.size());
+                }
+                graph.addSeries(series);
+            } catch (IllegalArgumentException e) {
+                Toast.makeText(ReadDevice.this, e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
+
         final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
             @Override
             public void onConnectionStateChange(final BluetoothGatt gatt, final int status, final int newState) {
@@ -114,30 +150,38 @@ public class ReadDevice extends AppCompatActivity {
                         // Bonding process has already started let it complete
                         Log.i(TAG, "waiting for bonding to complete");
                     }
-                } else if ((newState == BluetoothProfile.STATE_DISCONNECTED) && (status == BluetoothGatt.GATT)) {
-                    connectionState = STATE_DISCONNECTED;
-                    Log.e(TAG, "Disconnected");
-                    gatt.disconnect();
-                    gatt.close();
-                    goBackToScan();
-                } else {
-                    Log.e(TAG, "GATT Error");
-                    gatt.disconnect();
-                    gatt.close();
-                    goBackToScan();
+                } else if (!error) {
+                    error = true;
+                    if ((newState == BluetoothProfile.STATE_DISCONNECTED) && (status == BluetoothGatt.GATT)) {
+                        connectionState = STATE_DISCONNECTED;
+                        Log.e(TAG, "Disconnected");
+                        finish();
+                        gatt.disconnect();
+                        gatt.close();
+                    } else {
+                        Log.e(TAG, "GATT Error");
+                        finish();
+                        gatt.disconnect();
+                        gatt.close();
+                        goBackToScan();
+                    }
                 }
             }
 
+            //TODO: Figure out why main is called back several times
             @Override
             // New services discovered
             public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                 if (status == 133) {
-                    device = null;
-                    goBackToScan();
+                    finish();
+                    gatt.disconnect();
+                    gatt.close();
                 }
                 if (status == 129) {
                     Log.e(TAG, "Service discovery failed");
+                    finish();
                     gatt.disconnect();
+                    gatt.close();
                 }
                 else {
                     //check that service has desired characteristic and set charactertistic if true
@@ -187,32 +231,6 @@ public class ReadDevice extends AppCompatActivity {
                 gatt.writeCharacteristic(characteristic);
             }
 
-//            @Override
-//            // Result of a characteristic read operation
-//            public void onCharacteristicRead(BluetoothGatt gatt,
-//                                             BluetoothGattCharacteristic characteristic,
-//                                             int status) {
-//                super.onCharacteristicRead(gatt, characteristic, status);
-//                if (flag == 0) {
-//                    flag = 1;
-//                    // Perform some checks on the status field
-//                    if (status != GATT_SUCCESS) {
-//                        if (status == GATT_INSUFFICIENT_AUTHENTICATION) {
-//                            // Characteristic encrypted and needs bonding,
-//                            // So retry operation after bonding completes
-//                            // This only happens on Android 5/6/7
-//                            Log.w(TAG, "read needs bonding, bonding in progress");
-//                        } else {
-//                            Log.e(TAG, String.format(Locale.ENGLISH, "ERROR: Read failed for characteristic: %s, status %d", characteristic.getUuid(), status));
-//                        }
-//                    }
-//                    byte[] reading = characteristic.getValue();
-//                    displayVal(String.valueOf(reading[1]));
-//                }
-//                flag = 0;
-//            }
-
-            //TODO: This is triggered from notify, not read - handle 5 bytes in here so this works with the BGM
             @Override
             // Result of a characteristic read operation
             public void onCharacteristicChanged(BluetoothGatt gatt,
@@ -224,12 +242,6 @@ public class ReadDevice extends AppCompatActivity {
                     displayVal(String.valueOf(reading[1]));
                 }
                 flag = 0;
-            }
-
-            //TODO: Can probably take this out
-            @Override
-            public void onPhyRead(BluetoothGatt gatt, int txPhy, int rxPhy, int status) {
-                super.onPhyRead(gatt, txPhy, rxPhy, status);
             }
         };
 
@@ -248,22 +260,23 @@ public class ReadDevice extends AppCompatActivity {
 
     public void goBackToScan() {
         Intent intent = new Intent(this, MainActivity.class);
-        startActivity(intent);
+        startActivity(intent.addFlags(FLAG_ACTIVITY_NO_ANIMATION));
     }
 
     public void displayVal(String sensorVal) {
-        //TODO: Always displaying 0 - need to add ability to read 5 byte values, not just first byte
+        dataPoints.add(new DataPoint(count, Integer.parseInt(sensorVal)));
+        count++;
 
         //Update in new activity
         Intent intent = new Intent(this, UpdateDeviceReading.class);
         intent.putExtra("sensorVal", sensorVal);
         intent.putExtra("deviceAddr", device.getAddress());
         intent.putExtra("deviceName", deviceName);
+        intent.putExtra("count", count);
+        Bundle args = new Bundle();
+        args.putSerializable("dataPoints", (Serializable)dataPoints);
+        intent.putExtra("BUNDLE", args);
 
-        startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION));
-    }
-
-    public void reconnectDevice(BluetoothGattCallback gattCallback) {
-        BluetoothGatt gatt = device.connectGatt(this, false, gattCallback, TRANSPORT_LE);
+        startActivity(intent.addFlags(FLAG_ACTIVITY_NO_ANIMATION));
     }
 }
