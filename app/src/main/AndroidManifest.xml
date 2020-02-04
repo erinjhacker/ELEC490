@@ -30,10 +30,6 @@
             android:label="Reading Device"
             android:name=".ReadDevice" >
         </activity>
-        <activity
-            android:label="Reading Device"
-            android:name=".UpdateDeviceReading" >
-        </activity>
     </application>
 
 </manifest>
