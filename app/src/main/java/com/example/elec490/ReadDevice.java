@@ -16,6 +16,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -98,6 +99,8 @@ public class ReadDevice extends AppCompatActivity {
 
     boolean error = false;
 
+    BluetoothGatt gatt;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -106,6 +109,17 @@ public class ReadDevice extends AppCompatActivity {
 
         BluetoothManager manager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter mbluetoothAdapter = manager.getAdapter();
+
+        Button returnButton = findViewById(R.id.returnButton);
+        returnButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                gatt.disconnect();
+                gatt.close();
+                finish();
+                goBackToScan();
+                return;
+            }
+        });
 
         //Set name of connected device
         deviceName = getIntent().getExtras().getString("deviceName");
@@ -165,7 +179,6 @@ public class ReadDevice extends AppCompatActivity {
                         finish();
                         gatt.disconnect();
                         gatt.close();
-                        //goBackToScan();
                         return;
                     }
                 }
@@ -255,7 +268,7 @@ public class ReadDevice extends AppCompatActivity {
         String deviceAddr = getIntent().getExtras().getString("deviceAddr");
         Log.d(TAG, deviceAddr);
         device = mbluetoothAdapter.getRemoteDevice(deviceAddr);
-        BluetoothGatt gatt = device.connectGatt(this, false, gattCallback, TRANSPORT_LE);
+        gatt = device.connectGatt(this, false, gattCallback, TRANSPORT_LE);
     }
 
     @Override
