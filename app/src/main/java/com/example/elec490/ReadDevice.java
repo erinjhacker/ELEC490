@@ -273,16 +273,22 @@ public class ReadDevice extends AppCompatActivity {
         dataPoints.add(new DataPoint(count, Integer.parseInt(sensorVal)));
         count++;
 
-        //Update in new activity
-        Intent intent = new Intent(this, UpdateDeviceReading.class);
-        intent.putExtra("sensorVal", sensorVal);
-        intent.putExtra("deviceAddr", device.getAddress());
-        intent.putExtra("deviceName", deviceName);
-        intent.putExtra("count", count);
-        Bundle args = new Bundle();
-        args.putSerializable("dataPoints", (Serializable)dataPoints);
-        intent.putExtra("BUNDLE", args);
+        TextView setDeviceReading = (TextView) findViewById(R.id.deviceReading);
+        setDeviceReading.setText(sensorVal);
 
-        startActivity(intent.addFlags(FLAG_ACTIVITY_NO_ANIMATION));
+        final GraphView graph = (GraphView) findViewById(R.id.graph);
+        graph.setVisibility(View.VISIBLE);
+
+        if (dataPoints.size() > 0) {
+            try {
+                LineGraphSeries<DataPoint> series = new LineGraphSeries<>();
+                for (DataPoint dataPoint : dataPoints) {
+                    series.appendData(dataPoint, true, dataPoints.size());
+                }
+                graph.addSeries(series);
+            } catch (IllegalArgumentException e) {
+                Toast.makeText(ReadDevice.this, e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
     }
 }
