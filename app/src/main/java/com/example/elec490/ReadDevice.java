@@ -73,6 +73,7 @@ public class ReadDevice extends AppCompatActivity {
     //Arduino ids
 //    private static final UUID serviceUUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214");
 //    private static final UUID charUUID = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214");
+//    private static final UUID configUUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
 //    private static final UUID configUUID = UUID.fromString("19B12902-E8F2-537E-4F6C-D104768A1214");
 
     //BGM ids for temperature sensor
@@ -158,12 +159,14 @@ public class ReadDevice extends AppCompatActivity {
                         finish();
                         gatt.disconnect();
                         gatt.close();
+                        return;
                     } else {
                         Log.e(TAG, "GATT Error");
                         finish();
                         gatt.disconnect();
                         gatt.close();
-                        goBackToScan();
+                        //goBackToScan();
+                        return;
                     }
                 }
             }
@@ -176,12 +179,14 @@ public class ReadDevice extends AppCompatActivity {
                     finish();
                     gatt.disconnect();
                     gatt.close();
+                    return;
                 }
                 if (status == 129) {
                     Log.e(TAG, "Service discovery failed");
                     finish();
                     gatt.disconnect();
                     gatt.close();
+                    return;
                 }
                 else {
                     //check that service has desired characteristic and set charactertistic if true
@@ -239,6 +244,7 @@ public class ReadDevice extends AppCompatActivity {
                 if (flag == 0) {
                     flag = 1;
                     byte[] reading = characteristic.getValue();
+                    //TODO: Figure out how to read bgm (bit 1) and arduino (bit 0)
                     displayVal(String.valueOf(reading[1]));
                 }
                 flag = 0;
