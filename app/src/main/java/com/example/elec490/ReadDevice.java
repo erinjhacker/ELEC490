@@ -24,7 +24,6 @@ import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -34,7 +33,6 @@ import static android.bluetooth.BluetoothDevice.BOND_BONDED;
 import static android.bluetooth.BluetoothDevice.BOND_BONDING;
 import static android.bluetooth.BluetoothDevice.BOND_NONE;
 import static android.bluetooth.BluetoothDevice.TRANSPORT_LE;
-import static android.bluetooth.BluetoothGatt.GATT_INSUFFICIENT_AUTHENTICATION;
 import static android.bluetooth.BluetoothGatt.GATT_SUCCESS;
 import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_INDICATE;
 import static android.bluetooth.BluetoothGattCharacteristic.PROPERTY_NOTIFY;
@@ -290,7 +288,7 @@ public class ReadDevice extends AppCompatActivity {
         setDeviceReading.setText(sensorVal);
 
         final GraphView graph = (GraphView) findViewById(R.id.graph);
-        graph.setVisibility(View.VISIBLE);
+        graph.onDataChanged(true, true);
 
         if (dataPoints.size() > 0) {
             try {
@@ -298,6 +296,8 @@ public class ReadDevice extends AppCompatActivity {
                 for (DataPoint dataPoint : dataPoints) {
                     series.appendData(dataPoint, true, dataPoints.size());
                 }
+                graph.getViewport().setXAxisBoundsManual(true);
+                graph.getViewport().setMaxX(dataPoints.size());
                 graph.addSeries(series);
             } catch (IllegalArgumentException e) {
                 Toast.makeText(ReadDevice.this, e.getMessage(), Toast.LENGTH_LONG).show();
