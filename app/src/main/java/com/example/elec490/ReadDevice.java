@@ -70,15 +70,14 @@ public class ReadDevice extends AppCompatActivity {
     private int flag = 0;
 
     //Arduino ids
-//    private static final UUID serviceUUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214");
-//    private static final UUID charUUID = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214");
-//    private static final UUID configUUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
-//    private static final UUID configUUID = UUID.fromString("19B12902-E8F2-537E-4F6C-D104768A1214");
+    private static final UUID serviceUUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214");
+    private static final UUID charUUID = UUID.fromString("19B10001-E8F2-537E-4F6C-D104768A1214");
+    private static final UUID configUUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
 
     //BGM ids for temperature sensor
-    private static final UUID serviceUUID = UUID.fromString("00001809-0000-1000-8000-00805F9B34FB");
-    private static final UUID charUUID = UUID.fromString("00002A1C-0000-1000-8000-00805F9B34FB");
-    private static final UUID configUUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
+//    private static final UUID serviceUUID = UUID.fromString("00001809-0000-1000-8000-00805F9B34FB");
+//    private static final UUID charUUID = UUID.fromString("00002A1C-0000-1000-8000-00805F9B34FB");
+//    private static final UUID configUUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
 
     //BGM ids for custom service (our sensor)
 
@@ -133,6 +132,7 @@ public class ReadDevice extends AppCompatActivity {
 
         final GraphView graph = (GraphView) findViewById(R.id.graph);
         graph.setVisibility(View.VISIBLE);
+        graph.getGridLabelRenderer().setHorizontalLabelsVisible(false);
 
         count = getIntent().getExtras().getInt("count");
 
@@ -256,7 +256,20 @@ public class ReadDevice extends AppCompatActivity {
                     flag = 1;
                     byte[] reading = characteristic.getValue();
                     //TODO: Figure out how to read bgm (bit 1) and arduino (bit 0)
-                    displayVal(String.valueOf(reading[1]));
+                    displayVal(String.valueOf(reading[0]));
+                }
+                flag = 0;
+            }
+
+            @Override
+            public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic,
+                                             int status) {
+                super.onCharacteristicRead(gatt, characteristic, status);
+                if (flag == 0) {
+                    flag = 1;
+                    byte[] reading = characteristic.getValue();
+                    //TODO: Figure out how to read bgm (bit 1) and arduino (bit 0)
+                    displayVal(String.valueOf(reading[0]));
                 }
                 flag = 0;
             }
@@ -288,17 +301,25 @@ public class ReadDevice extends AppCompatActivity {
         setDeviceReading.setText(sensorVal);
 
         final GraphView graph = (GraphView) findViewById(R.id.graph);
-        graph.onDataChanged(true, true);
 
         if (dataPoints.size() > 0) {
             try {
-                LineGraphSeries<DataPoint> series = new LineGraphSeries<>();
+                final LineGraphSeries<DataPoint> series = new LineGraphSeries<>();
                 for (DataPoint dataPoint : dataPoints) {
                     series.appendData(dataPoint, true, dataPoints.size());
                 }
                 graph.getViewport().setXAxisBoundsManual(true);
                 graph.getViewport().setMaxX(dataPoints.size());
-                graph.addSeries(series);
+                if (dataPoints.size() > 100) {
+                    graph.getViewport().setMinX(dataPoints.size() - 100);
+                }
+                graph.getGridLabelRenderer().setHorizontalLabelsVisible(false);
+                this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        graph.addSeries(series);
+                    }
+                });
             } catch (IllegalArgumentException e) {
                 Toast.makeText(ReadDevice.this, e.getMessage(), Toast.LENGTH_LONG).show();
             }
