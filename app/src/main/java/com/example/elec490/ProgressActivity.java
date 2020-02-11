@@ -9,30 +9,23 @@ import android.widget.Button;
 
 import static android.content.Intent.FLAG_ACTIVITY_NO_ANIMATION;
 
-public class HomeActivity extends AppCompatActivity {
+public class ProgressActivity extends AppCompatActivity {
 
-    private static final String TAG = "HomeActivity";
+    private static final String TAG = "ProgressActivity";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getSupportActionBar().hide();
-        setContentView(R.layout.activity_home);
+        setContentView(R.layout.activity_progress);
 
-        Button startButton = findViewById(R.id.begin);
+        Button startButton = findViewById(R.id.begin2);
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(HomeActivity.this, MainActivity.class));
+                startActivity(new Intent(ProgressActivity.this, MainActivity.class));
             }
         });
 
-        Button progressButton = findViewById(R.id.progress);
-        progressButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(HomeActivity.this, ProgressActivity.class));
-            }
-        });
     }
 }
