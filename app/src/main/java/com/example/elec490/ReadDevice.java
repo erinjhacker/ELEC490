@@ -1,5 +1,6 @@
 package com.example.elec490;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -11,12 +12,19 @@ import android.bluetooth.BluetoothProfile;
 import android.bluetooth.BluetoothGattCallback;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,6 +32,7 @@ import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -68,6 +77,8 @@ public class ReadDevice extends AppCompatActivity {
     private static final int STATE_CONNECTED = 2;
 
     private int flag = 0;
+    //private int snapflag = 0;
+    //final GraphView graph = (GraphView) findViewById(R.id.graph);
 
     //Arduino ids
     private static final UUID serviceUUID = UUID.fromString("19B10000-E8F2-537E-4F6C-D104768A1214");
@@ -107,13 +118,25 @@ public class ReadDevice extends AppCompatActivity {
         BluetoothManager manager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter mbluetoothAdapter = manager.getAdapter();
 
+        int externalCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (externalCheck != PackageManager.PERMISSION_GRANTED){
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+                Toast.makeText(this, "The permission to write to external files is required", Toast.LENGTH_SHORT).show();
+            }else{
+                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+            }
+        }else{
+            Toast.makeText(this, "Writing permissions already granted", Toast.LENGTH_SHORT).show();
+        }
+
         Button returnButton = findViewById(R.id.returnButton);
         returnButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 gatt.disconnect();
                 gatt.close();
                 finish();
-                goBackToScan();
+                //goBackToScan();
+                startActivity(new Intent(ReadDevice.this, HomeActivity.class));
                 return;
             }
         });
@@ -290,6 +313,11 @@ public class ReadDevice extends AppCompatActivity {
 
     public void goBackToScan() {
         Intent intent = new Intent(this, MainActivity.class);
+        startActivity(intent.addFlags(FLAG_ACTIVITY_NO_ANIMATION));
+    }
+
+    public void goBackHome() {
+        Intent intent = new Intent(this, HomeActivity.class);
         startActivity(intent.addFlags(FLAG_ACTIVITY_NO_ANIMATION));
     }
 
