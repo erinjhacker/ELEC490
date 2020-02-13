@@ -19,22 +19,37 @@
         android:textColor="#FFFFFF"
         android:textSize="14sp" />
 
-    <ImageView
-        android:id="@+id/yourProg"
-        android:layout_marginTop="30sp"
+    <TextView
+        android:id="@+id/dateAndTime1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-         />
+        android:layout_gravity="center"
+        android:layout_marginTop="20sp"
+        android:textAlignment="center"
+        android:gravity="center"
+        android:textSize="20sp" />
+
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/progGraph1"
+        android:layout_width="350sp"
+        android:layout_height="200dip"
+        android:layout_gravity="center"
+        android:layout_marginTop="10sp" />
 
     <TextView
-        android:id="@+id/maxReading"
-        android:layout_width="wrap_content"
+        android:id="@+id/dateAndTime2"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="30sp"
         android:layout_gravity="center"
-        android:layout_marginTop="5sp"
         android:gravity="center"
-        android:textColor="@color/colorAccent"
-        android:textSize="30sp" />
+        android:textSize="20sp" />
 
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/progGraph2"
+        android:layout_width="350sp"
+        android:layout_height="200dip"
+        android:layout_gravity="center"
+        android:layout_marginTop="10sp" />
 
 </LinearLayout>

@@ -1,0 +1,24 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/dateAndTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10sp"
+        android:layout_gravity="center"
+        android:gravity="center" />
+
+
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/progGraph"
+        android:layout_width="350sp"
+        android:layout_height="200dip"
+        android:layout_gravity="center"
+        android:layout_marginTop="20sp" />
+
+</LinearLayout>
