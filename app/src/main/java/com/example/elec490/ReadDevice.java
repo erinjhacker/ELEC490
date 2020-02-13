@@ -163,7 +163,7 @@ public class ReadDevice extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String outputList = builder.toString();
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHmmss");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
                 String fileName = sdf.format(new Date());
                 writeFileOnInternalStorage(getApplicationContext(), fileName, outputList);
                 Toast.makeText(getApplicationContext(), "Your data has been saved!", Toast.LENGTH_SHORT).show();
