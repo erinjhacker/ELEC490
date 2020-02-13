@@ -118,6 +118,7 @@ public class ReadDevice extends AppCompatActivity {
         BluetoothManager manager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter mbluetoothAdapter = manager.getAdapter();
 
+        //Check for writing permission to save data
         int externalCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         if (externalCheck != PackageManager.PERMISSION_GRANTED){
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)){
@@ -126,7 +127,8 @@ public class ReadDevice extends AppCompatActivity {
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
             }
         }else{
-            Toast.makeText(this, "Writing permissions already granted", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, "Writing permissions already granted", Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "Writing permission already granted");
         }
 
         Button returnButton = findViewById(R.id.returnButton);
