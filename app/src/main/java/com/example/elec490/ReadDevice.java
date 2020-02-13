@@ -33,10 +33,14 @@ import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import static android.bluetooth.BluetoothDevice.BOND_BONDED;
 import static android.bluetooth.BluetoothDevice.BOND_BONDING;
@@ -109,6 +113,8 @@ public class ReadDevice extends AppCompatActivity {
 
     BluetoothGatt gatt;
 
+    StringBuilder builder = new StringBuilder();
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -127,9 +133,17 @@ public class ReadDevice extends AppCompatActivity {
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
             }
         }else{
-//            Toast.makeText(this, "Writing permissions already granted", Toast.LENGTH_SHORT).show();
             Log.d(TAG, "Writing permission already granted");
         }
+        int readCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
+        if (readCheck != PackageManager.PERMISSION_GRANTED){
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)){
+                Toast.makeText(this, "The permission to read to external files is required", Toast.LENGTH_SHORT).show();
+            }else{
+                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+            }
+        }
+
 
         Button returnButton = findViewById(R.id.returnButton);
         returnButton.setOnClickListener(new View.OnClickListener() {
@@ -139,7 +153,20 @@ public class ReadDevice extends AppCompatActivity {
                 finish();
                 //goBackToScan();
                 startActivity(new Intent(ReadDevice.this, HomeActivity.class));
+                //saveAndHome();
                 return;
+            }
+        });
+
+        Button saveButton = findViewById(R.id.saveData);
+        saveButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String outputList = builder.toString();
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHmmss");
+                String fileName = sdf.format(new Date());
+                writeFileOnInternalStorage(getApplicationContext(), fileName, outputList);
+                Toast.makeText(getApplicationContext(), "Your data has been saved!", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -318,9 +345,29 @@ public class ReadDevice extends AppCompatActivity {
         startActivity(intent.addFlags(FLAG_ACTIVITY_NO_ANIMATION));
     }
 
-    public void goBackHome() {
-        Intent intent = new Intent(this, HomeActivity.class);
-        startActivity(intent.addFlags(FLAG_ACTIVITY_NO_ANIMATION));
+    public void saveAndHome() {
+        writeFileOnInternalStorage(getApplicationContext(), "test1", "aaarr");
+        startActivity(new Intent(ReadDevice.this, HomeActivity.class));
+    }
+
+    public void writeFileOnInternalStorage(Context mcoContext,String sFileName, String sBody){
+        File file = new File(mcoContext.getFilesDir(),"track_data");
+        if(!file.exists()){
+            file.mkdir();
+        }
+
+        try{
+            File gpxfile = new File(file, sFileName);
+            FileWriter writer = new FileWriter(gpxfile);
+            writer.append(sBody);
+            writer.flush();
+            writer.close();
+            Log.d("location", gpxfile.toString());
+
+        }catch (Exception e){
+            e.printStackTrace();
+
+        }
     }
 
     public void displayVal(String sensorVal) {
@@ -329,6 +376,8 @@ public class ReadDevice extends AppCompatActivity {
 
         TextView setDeviceReading = (TextView) findViewById(R.id.deviceReading);
         setDeviceReading.setText(sensorVal);
+        builder.append(sensorVal);
+        builder.append("/");
 
         final GraphView graph = (GraphView) findViewById(R.id.graph);
 
