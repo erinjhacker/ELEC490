@@ -38,6 +38,7 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 import java.util.UUID;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -163,7 +164,7 @@ public class ReadDevice extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String outputList = builder.toString();
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHmmss");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
                 String fileName = sdf.format(new Date());
                 writeFileOnInternalStorage(getApplicationContext(), fileName, outputList);
                 Toast.makeText(getApplicationContext(), "Your data has been saved!", Toast.LENGTH_SHORT).show();

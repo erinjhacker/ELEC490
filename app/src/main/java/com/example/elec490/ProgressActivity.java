@@ -96,7 +96,7 @@ public class ProgressActivity extends AppCompatActivity {
         hr1 = hr1 + fullname1.charAt(56) + fullname1.charAt(57);
         min1 = min1 + fullname1.charAt(58) + fullname1.charAt(59);
         String fullDate1 = "";
-        fullDate1 = "Taken " + month1 + "/" + day1 + "/" + year1 + " at " + hr1 + ":" + min1 + ":";
+        fullDate1 = "Taken " + month1 + "/" + day1 + "/" + year1 + " at " + hr1 + ":" + min1;
         setTrackedData.setText(fullDate1);
 
         ArrayList<DataPoint> dataPt1;
@@ -191,7 +191,7 @@ public class ProgressActivity extends AppCompatActivity {
         hr2 = hr2 + fullname2.charAt(56) + fullname2.charAt(57);
         min2 = min2 + fullname2.charAt(58) + fullname2.charAt(59);
         String fullDate2 = "";
-        fullDate2 = "Taken " + month2 + "/" + day2 + "/" + year2 + " at " + hr2 + ":" + min2 + ":";
+        fullDate2 = "Taken " + month2 + "/" + day2 + "/" + year2 + " at " + hr2 + ":" + min2;
         setTrackedData2.setText(fullDate2);
 
         ArrayList<DataPoint> dataPt2;
