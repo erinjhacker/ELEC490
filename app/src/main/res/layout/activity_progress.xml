@@ -1,0 +1,55 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+
+    <Button
+        android:id="@+id/begin2"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="240sp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="50sp"
+        android:background="@drawable/green_gradient"
+        android:text="Track New Data"
+        android:textAllCaps="true"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/dateAndTime1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="20sp"
+        android:textAlignment="center"
+        android:gravity="center"
+        android:textSize="20sp" />
+
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/progGraph1"
+        android:layout_width="350sp"
+        android:layout_height="200dip"
+        android:layout_gravity="center"
+        android:layout_marginTop="10sp" />
+
+    <TextView
+        android:id="@+id/dateAndTime2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30sp"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:textSize="20sp" />
+
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/progGraph2"
+        android:layout_width="350sp"
+        android:layout_height="200dip"
+        android:layout_gravity="center"
+        android:layout_marginTop="10sp" />
+
+</LinearLayout>

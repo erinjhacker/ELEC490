@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -6,67 +5,52 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="20dp" />
+
+    <ImageView
+        android:id="@+id/imageView3"
+        android:layout_width="258dp"
+        android:layout_height="327dp"
+        android:layout_gravity="center"
+        app:srcCompat="@drawable/full_logo" />
+
     <TextView
-        android:id="@+id/deviceName"
-        android:layout_width="wrap_content"
+        android:id="@+id/textView3"
+        android:layout_width="318dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_marginTop="30sp"
-        android:gravity="center"
-        android:textColor="#C9C9C9"
-        android:textSize="16sp" />
-
-    <TextView
-        android:id="@+id/textView2"
-        android:layout_width="wrap_content"
-        android:layout_height="30sp"
-        android:layout_gravity="center"
-        android:layout_marginTop="30sp"
-        android:text="Sensor Reading:"
-        android:textSize="20sp" />
-
-    <TextView
-        android:id="@+id/deviceReading"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="20sp"
-        android:gravity="center"
-        android:textColor="@color/colorAccent"
-        android:textSize="30sp" />
-
-    <com.jjoe64.graphview.GraphView
-        android:id="@+id/graph"
-        android:layout_width="350sp"
-        android:layout_height="200dip"
-        android:layout_gravity="center"
-        android:layout_marginTop="30sp" />
+        android:text="REHAB TRACKER connects to your wearable devices and tracks your physiotherapy exercises to help you measure your progress."
+        android:textAlignment="center"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
     <Button
-        android:id="@+id/saveData"
+        android:id="@+id/begin"
         style="?android:attr/borderlessButtonStyle"
         android:layout_width="240sp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="30sp"
         android:background="@drawable/green_gradient"
-        android:text="Save Data"
+        android:text="Get Started"
         android:textAllCaps="true"
         android:textColor="#FFFFFF"
         android:textSize="14sp" />
 
     <Button
-        android:id="@+id/returnButton"
+        android:id="@+id/progress"
         style="?android:attr/borderlessButtonStyle"
         android:layout_width="240sp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="10sp"
         android:background="@drawable/blue_button"
-        android:text="Done"
+        android:text="Show Progress"
         android:textAllCaps="true"
         android:textColor="@color/colorAccent"
         android:textSize="14sp" />
-
 
 </LinearLayout>
